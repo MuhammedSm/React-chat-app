@@ -11,7 +11,7 @@ const Input = () => {
         <label htmlFor="file">
           <img src={Img} alt="" />
         </label>
-        <button>Send msg</button>
+        <button>Send</button>
       </div>
     </div>
   )
