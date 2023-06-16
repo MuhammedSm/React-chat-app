@@ -47,7 +47,7 @@ const Register=()=> {
         setErr(true)
       }
 
-  }
+  };
   return (
     <div className="formContainer">
     <div className="formWrapper">
