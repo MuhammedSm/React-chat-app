@@ -73,12 +73,21 @@ const Input = () => {
     setText("");
     setImg(null);
   };
+
+  const handleKeyDown = (event) => {
+    if (event.keyCode === 13) { // enter key
+      event.preventDefault(); // prevent form submit
+      handleSend(); // send the message
+    }
+  };
+
   return (
     <div className="input">
       <input
         type="text"
         placeholder="Type something..."
         onChange={(e) => setText(e.target.value)}
+        onKeyDown={handleKeyDown} // add onKeyDown event listener
         value={text}
       />
       <div className="send">
@@ -99,5 +108,3 @@ const Input = () => {
 };
 
 export default Input;
-
-    
