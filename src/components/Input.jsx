@@ -29,56 +29,56 @@ const Input = () => {
 
       uploadTask.on(
         (error) => {
-          //TODO:Handle Error
+          // TODO: Handle Error
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-            await updateDoc(doc(db, "chats", data.chatId), {
-              messages: arrayUnion({
-                id: uuid(),
-                text,
-                senderId: currentUser.uid,
-                date: Timestamp.now(),
-                img: downloadURL,
-              }),
-            });
+            await sendMessage(downloadURL);
           });
         }
       );
     } else {
-      await updateDoc(doc(db, "chats", data.chatId), {
-        messages: arrayUnion({
-          id: uuid(),
-          text,
-          senderId: currentUser.uid,
-          date: Timestamp.now(),
-        }),
-      });
+      await sendMessage(null);
     }
-
-    await updateDoc(doc(db, "userChats", currentUser.uid), {
-      [data.chatId + ".lastMessage"]: {
-        text,
-      },
-      [data.chatId + ".date"]: serverTimestamp(),
-    });
-
-    await updateDoc(doc(db, "userChats", data.user.uid), {
-      [data.chatId + ".lastMessage"]: {
-        text,
-      },
-      [data.chatId + ".date"]: serverTimestamp(),
-    });
 
     setText("");
     setImg(null);
   };
 
+  const sendMessage = async (downloadURL) => {
+    const message = {
+      id: uuid(),
+      text,
+      senderId: currentUser.uid,
+      date: Timestamp.now(),
+      img: downloadURL,
+    };
+
+    await updateDoc(doc(db, "chats", data.chatId), {
+      messages: arrayUnion(message),
+    });
+
+    const userChatsUpdates = {
+      [data.chatId + ".lastMessage"]: {
+        text,
+      },
+      [data.chatId + ".date"]: serverTimestamp(),
+    };
+
+    await updateDoc(doc(db, "userChats", currentUser.uid), userChatsUpdates);
+    await updateDoc(doc(db, "userChats", data.user.uid), userChatsUpdates);
+  };
+
   const handleKeyDown = (event) => {
-    if (event.keyCode === 13) { // enter key
-      event.preventDefault(); // prevent form submit
-      handleSend(); // send the message
+    if (event.keyCode === 13) {
+      event.preventDefault();
+      handleSend();
     }
+  };
+
+  const handleFileChange = (event) => {
+    setImg(event.target.files[0]);
+    handleSend();
   };
 
   return (
@@ -87,7 +87,7 @@ const Input = () => {
         type="text"
         placeholder="Type something..."
         onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown} // add onKeyDown event listener
+        onKeyDown={handleKeyDown}
         value={text}
       />
       <div className="send">
@@ -96,7 +96,7 @@ const Input = () => {
           type="file"
           style={{ display: "none" }}
           id="file"
-          onChange={(e) => setImg(e.target.files[0])}
+          onChange={handleFileChange}
         />
         <label htmlFor="file">
           <img src={Img} alt="" />

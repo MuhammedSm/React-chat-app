@@ -9,6 +9,7 @@ import { useNavigate, Link } from "react-router-dom";
 const Register = () => {
   const [err, setErr] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [avatarSrc, setAvatarSrc] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -25,35 +26,45 @@ const Register = () => {
 
       //Create a unique image name
       const date = new Date().getTime();
-      const storageRef = ref(storage, `${displayName + date}`);
 
-      await uploadBytesResumable(storageRef, file).then(() => {
-        getDownloadURL(storageRef).then(async (downloadURL) => {
-          try {
-            //Update profile
-            await updateProfile(res.user, {
-              displayName,
-              photoURL: downloadURL,
-            });
-            //create user on firestore
-            await setDoc(doc(db, "users", res.user.uid), {
-              uid: res.user.uid,
-              displayName,
-              email,
-              photoURL: downloadURL,
-            });
+      if (file) {
+        const storageRef = ref(storage, `${displayName + date}`);
+        await uploadBytesResumable(storageRef, file).then(async () => {
+          const downloadURL = await getDownloadURL(storageRef);
 
-            //create empty user chats on firestore
-            await setDoc(doc(db, "userChats", res.user.uid), {});
-            navigate("/");
-          } catch (err) {
-            console.log(err);
-            setErr(true);
-            setLoading(false);
-          }
+          //Update profile with avatar URL
+          await updateProfile(res.user, {
+            displayName,
+            photoURL: downloadURL,
+          });
+
+          //create user on firestore
+          await setDoc(doc(db, "users", res.user.uid), {
+            uid: res.user.uid,
+            displayName,
+            email,
+            photoURL: downloadURL,
+          });
         });
-      });
+      } else {
+        //Update profile without avatar URL
+        await updateProfile(res.user, {
+          displayName,
+        });
+
+        //create user on firestore
+        await setDoc(doc(db, "users", res.user.uid), {
+          uid: res.user.uid,
+          displayName,
+          email,
+        });
+      }
+
+      //create empty user chats on firestore
+      await setDoc(doc(db, "userChats", res.user.uid), {});
+      navigate("/");
     } catch (err) {
+      console.log(err);
       setErr(true);
       setLoading(false);
     }
@@ -65,13 +76,30 @@ const Register = () => {
         <span className="logo">Muhammed Chat</span>
         <span className="title">Register</span>
         <form onSubmit={handleSubmit}>
-          <input required type="text" placeholder="display name" />
+          <input required type="text" placeholder="Your name" />
           <input required type="email" placeholder="email" />
           <input required type="password" placeholder="password" />
-          <input required style={{ display: "none" }} type="file" id="file" />
+          <input
+            
+            style={{ display: "none" }}
+            type="file"
+            id="file"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setAvatarSrc(reader.result);
+                };
+                reader.readAsDataURL(file);
+              } else {
+                setAvatarSrc("");
+              }
+            }}
+          />
           <label htmlFor="file">
             <img src={Add} alt="" />
-            <span>Add an avatar</span>
+            <span>Add a profile picture</span>
           </label>
           <button disabled={loading}>Sign up</button>
           {loading && "Uploading and compressing the image please wait..."}
@@ -86,5 +114,3 @@ const Register = () => {
 };
 
 export default Register;
-
-    
