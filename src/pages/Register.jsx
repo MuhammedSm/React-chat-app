@@ -5,6 +5,7 @@ import { auth, db, storage } from "../firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate, Link } from "react-router-dom";
+import emptyImg from "../img/emtyprofile.jpg";
 
 const Register = () => {
   const [err, setErr] = useState(false);
@@ -18,7 +19,12 @@ const Register = () => {
     const displayName = e.target[0].value;
     const email = e.target[1].value;
     const password = e.target[2].value;
-    const file = e.target[3].files[0];
+    let file = e.target[3].files[0];
+
+    // Check if file is empty
+    if (!file) {
+      file = new Blob([emptyImg], { type: "image/jpeg" }); // Create a new Blob object from the empty profile image
+    }
 
     try {
       //Create user
@@ -27,29 +33,14 @@ const Register = () => {
       //Create a unique image name
       const date = new Date().getTime();
 
-      if (file) {
-        const storageRef = ref(storage, `${displayName + date}`);
-        await uploadBytesResumable(storageRef, file).then(async () => {
-          const downloadURL = await getDownloadURL(storageRef);
+      const storageRef = ref(storage, `${displayName + date}`);
+      await uploadBytesResumable(storageRef, file).then(async () => {
+        const downloadURL = await getDownloadURL(storageRef);
 
-          //Update profile with avatar URL
-          await updateProfile(res.user, {
-            displayName,
-            photoURL: downloadURL,
-          });
-
-          //create user on firestore
-          await setDoc(doc(db, "users", res.user.uid), {
-            uid: res.user.uid,
-            displayName,
-            email,
-            photoURL: downloadURL,
-          });
-        });
-      } else {
-        //Update profile without avatar URL
+        //Update profile with avatar URL
         await updateProfile(res.user, {
           displayName,
+          photoURL: downloadURL,
         });
 
         //create user on firestore
@@ -57,8 +48,9 @@ const Register = () => {
           uid: res.user.uid,
           displayName,
           email,
+          photoURL: downloadURL,
         });
-      }
+      });
 
       //create empty user chats on firestore
       await setDoc(doc(db, "userChats", res.user.uid), {});
@@ -80,7 +72,6 @@ const Register = () => {
           <input required type="email" placeholder="email" />
           <input required type="password" placeholder="password" />
           <input
-            
             style={{ display: "none" }}
             type="file"
             id="file"
@@ -106,7 +97,7 @@ const Register = () => {
           {err && <span>Something went wrong</span>}
         </form>
         <p>
-          You do have an account? <Link to="/login">Login</Link>
+          Already have an account? <Link to="/login">Login</Link>
         </p>
       </div>
     </div>
